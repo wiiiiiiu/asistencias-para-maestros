@@ -1,0 +1,745 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Control de Asistencia</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <style>
+    :root {
+      --bg: #0a0c14;
+      --bg2: #11141f;
+      --bg3: #181c2e;
+      --card: #1c2135;
+      --card2: #222840;
+      --accent: #4f8ef7;
+      --accent2: #7c5cfc;
+      --green: #22d17a;
+      --red: #ff4d6d;
+      --yellow: #f5c842;
+      --text: #eef0f8;
+      --text2: #8b91b0;
+      --border: rgba(255,255,255,0.07);
+      --glow: 0 0 40px rgba(79,142,247,0.15);
+      --radius: 16px;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* === BACKGROUND EFFECT === */
+    body::before {
+      content: '';
+      position: fixed;
+      top: -200px; left: -200px;
+      width: 700px; height: 700px;
+      background: radial-gradient(circle, rgba(79,142,247,0.08) 0%, transparent 70%);
+      pointer-events: none;
+      z-index: 0;
+      animation: floatBg 8s ease-in-out infinite alternate;
+    }
+    body::after {
+      content: '';
+      position: fixed;
+      bottom: -100px; right: -100px;
+      width: 500px; height: 500px;
+      background: radial-gradient(circle, rgba(124,92,252,0.07) 0%, transparent 70%);
+      pointer-events: none;
+      z-index: 0;
+    }
+    @keyframes floatBg { from { transform: translate(0,0); } to { transform: translate(40px, 60px); } }
+
+    /* === HEADER === */
+    header {
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(10,12,20,0.85);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border);
+      padding: 0 2rem;
+      display: flex; align-items: center; justify-content: space-between;
+      height: 70px;
+      animation: slideDown 0.6s cubic-bezier(.4,0,.2,1);
+    }
+    @keyframes slideDown { from { transform: translateY(-100%); opacity: 0; } to { transform: none; opacity: 1; } }
+    .logo {
+      font-family: 'Syne', sans-serif;
+      font-weight: 800;
+      font-size: 1.3rem;
+      letter-spacing: -0.03em;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      display: flex; align-items: center; gap: 10px;
+    }
+    .logo-icon {
+      width: 32px; height: 32px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      -webkit-text-fill-color: white;
+      font-size: 1rem;
+    }
+    .header-right { display: flex; align-items: center; gap: 12px; }
+    .date-badge {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 30px;
+      padding: 6px 14px;
+      font-size: 0.8rem;
+      color: var(--text2);
+      display: flex; align-items: center; gap: 6px;
+    }
+    .date-badge span { color: var(--text); font-weight: 500; }
+    .nav-link {
+      padding: 7px 18px;
+      border-radius: 30px;
+      font-size: 0.82rem;
+      font-weight: 500;
+      text-decoration: none;
+      background: var(--card);
+      border: 1px solid var(--border);
+      color: var(--text2);
+      transition: all 0.2s;
+    }
+    .nav-link:hover { background: var(--card2); color: var(--text); border-color: var(--accent); }
+    .nav-link.active { background: linear-gradient(135deg, var(--accent), var(--accent2)); color: white; border-color: transparent; }
+
+    /* === MAIN CONTENT === */
+    main { position: relative; z-index: 1; max-width: 1100px; margin: 0 auto; padding: 2.5rem 1.5rem; }
+
+    /* === SECTION TITLE === */
+    .page-title {
+      font-family: 'Syne', sans-serif;
+      font-size: 2rem; font-weight: 800;
+      letter-spacing: -0.04em;
+      margin-bottom: 0.3rem;
+      animation: fadeUp 0.7s ease both;
+    }
+    .page-sub {
+      color: var(--text2);
+      font-size: 0.9rem;
+      margin-bottom: 2rem;
+      animation: fadeUp 0.7s 0.1s ease both;
+    }
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: none; } }
+
+    /* === GRADO SELECTOR === */
+    .grado-tabs {
+      display: flex; gap: 10px;
+      margin-bottom: 2rem;
+      animation: fadeUp 0.7s 0.15s ease both;
+    }
+    .grado-tab {
+      flex: 1;
+      padding: 14px 10px;
+      border-radius: var(--radius);
+      border: 2px solid var(--border);
+      background: var(--card);
+      color: var(--text2);
+      font-family: 'Syne', sans-serif;
+      font-size: 0.9rem;
+      font-weight: 700;
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.25s cubic-bezier(.4,0,.2,1);
+      position: relative;
+      overflow: hidden;
+    }
+    .grado-tab::after {
+      content: '';
+      position: absolute; inset: 0;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      opacity: 0;
+      transition: opacity 0.25s;
+    }
+    .grado-tab.active {
+      border-color: var(--accent);
+      color: var(--text);
+      box-shadow: 0 0 0 1px var(--accent), var(--glow);
+    }
+    .grado-tab.active::after { opacity: 0.12; }
+    .grado-tab:hover:not(.active) { background: var(--card2); color: var(--text); border-color: rgba(79,142,247,0.4); }
+    .grado-tab .num { font-size: 1.6rem; display: block; margin-bottom: 2px; }
+    .grado-tab span { position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; }
+
+    /* === STATS BAR === */
+    .stats-bar {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-bottom: 2rem;
+      animation: fadeUp 0.7s 0.2s ease both;
+    }
+    .stat-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px 20px;
+      display: flex; align-items: center; gap: 14px;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .stat-card:hover { transform: translateY(-3px); box-shadow: var(--glow); }
+    .stat-icon {
+      width: 44px; height: 44px;
+      border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.3rem;
+      flex-shrink: 0;
+    }
+    .stat-icon.total { background: rgba(79,142,247,0.15); }
+    .stat-icon.present { background: rgba(34,209,122,0.15); }
+    .stat-icon.absent { background: rgba(255,77,109,0.15); }
+    .stat-label { font-size: 0.75rem; color: var(--text2); margin-bottom: 3px; }
+    .stat-value { font-family: 'Syne', sans-serif; font-size: 1.6rem; font-weight: 800; line-height: 1; }
+    .stat-value.blue { color: var(--accent); }
+    .stat-value.green { color: var(--green); }
+    .stat-value.red { color: var(--red); }
+
+    /* === ALUMNO GRID === */
+    .alumno-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+      gap: 14px;
+      margin-bottom: 2.5rem;
+      animation: fadeUp 0.7s 0.25s ease both;
+    }
+    .alumno-card {
+      background: var(--card);
+      border: 2px solid var(--border);
+      border-radius: var(--radius);
+      padding: 18px 16px;
+      cursor: pointer;
+      user-select: none;
+      transition: all 0.22s cubic-bezier(.4,0,.2,1);
+      position: relative;
+      overflow: hidden;
+      animation: cardIn 0.5s ease both;
+    }
+    @keyframes cardIn { from { opacity: 0; transform: scale(0.93) translateY(10px); } to { opacity: 1; transform: none; } }
+    .alumno-card::before {
+      content: '';
+      position: absolute; top: 0; left: 0; right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      transform: scaleX(0);
+      transform-origin: left;
+      transition: transform 0.3s ease;
+    }
+    .alumno-card:hover { transform: translateY(-4px); border-color: rgba(79,142,247,0.35); box-shadow: 0 8px 30px rgba(0,0,0,0.3); }
+    .alumno-card:hover::before { transform: scaleX(1); }
+    .alumno-card.present {
+      background: rgba(34,209,122,0.06);
+      border-color: rgba(34,209,122,0.45);
+      box-shadow: 0 0 20px rgba(34,209,122,0.08);
+    }
+    .alumno-card.present::before { transform: scaleX(1); background: var(--green); }
+    .alumno-card.absent {
+      background: rgba(255,77,109,0.06);
+      border-color: rgba(255,77,109,0.45);
+      box-shadow: 0 0 20px rgba(255,77,109,0.08);
+    }
+    .alumno-card.absent::before { transform: scaleX(1); background: var(--red); }
+
+    .alumno-avatar {
+      width: 48px; height: 48px;
+      border-radius: 14px;
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'Syne', sans-serif;
+      font-weight: 700;
+      font-size: 1.1rem;
+      margin-bottom: 12px;
+      background: var(--card2);
+      transition: all 0.25s;
+      position: relative;
+    }
+    .alumno-card.present .alumno-avatar { background: rgba(34,209,122,0.2); color: var(--green); }
+    .alumno-card.absent .alumno-avatar { background: rgba(255,77,109,0.2); color: var(--red); }
+
+    .alumno-name { font-weight: 500; font-size: 0.9rem; margin-bottom: 6px; line-height: 1.3; }
+    .alumno-num { font-size: 0.72rem; color: var(--text2); margin-bottom: 12px; }
+
+    .status-row { display: flex; gap: 8px; }
+    .status-btn {
+      flex: 1;
+      padding: 7px 4px;
+      border-radius: 8px;
+      border: none;
+      font-size: 0.72rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex; align-items: center; justify-content: center; gap: 4px;
+    }
+    .btn-present {
+      background: rgba(34,209,122,0.12);
+      color: var(--green);
+    }
+    .btn-present:hover, .alumno-card.present .btn-present {
+      background: var(--green);
+      color: #0a1a10;
+    }
+    .btn-absent {
+      background: rgba(255,77,109,0.12);
+      color: var(--red);
+    }
+    .btn-absent:hover, .alumno-card.absent .btn-absent {
+      background: var(--red);
+      color: #1a0a10;
+    }
+    .status-icon { font-size: 0.9rem; }
+
+    /* === ACTION BUTTONS === */
+    .actions {
+      display: flex; gap: 12px; flex-wrap: wrap;
+      animation: fadeUp 0.7s 0.3s ease both;
+    }
+    .btn {
+      padding: 12px 24px;
+      border-radius: 30px;
+      border: none;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.88rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.22s;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      color: white;
+      box-shadow: 0 4px 20px rgba(79,142,247,0.35);
+    }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(79,142,247,0.5); }
+    .btn-secondary {
+      background: var(--card);
+      border: 1px solid var(--border);
+      color: var(--text2);
+    }
+    .btn-secondary:hover { background: var(--card2); color: var(--text); border-color: var(--accent); }
+    .btn-success {
+      background: rgba(34,209,122,0.15);
+      border: 1px solid rgba(34,209,122,0.3);
+      color: var(--green);
+    }
+    .btn-success:hover { background: var(--green); color: #0a1a10; }
+    .btn:active { transform: scale(0.97); }
+
+    /* === TOAST === */
+    #toast {
+      position: fixed;
+      bottom: 2rem; right: 2rem;
+      background: var(--card2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px 20px;
+      font-size: 0.85rem;
+      font-weight: 500;
+      display: flex; align-items: center; gap: 10px;
+      transform: translateY(80px); opacity: 0;
+      transition: all 0.35s cubic-bezier(.4,0,.2,1);
+      z-index: 1000;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.4);
+    }
+    #toast.show { transform: none; opacity: 1; }
+    #toast.success { border-color: rgba(34,209,122,0.4); }
+    #toast.error { border-color: rgba(255,77,109,0.4); }
+
+    /* === PROGRESS BAR === */
+    .progress-wrap { margin-bottom: 1.5rem; animation: fadeUp 0.7s 0.22s ease both; }
+    .progress-label { display: flex; justify-content: space-between; font-size: 0.78rem; color: var(--text2); margin-bottom: 6px; }
+    .progress-track {
+      height: 6px;
+      background: var(--card2);
+      border-radius: 10px;
+      overflow: hidden;
+    }
+    .progress-bar {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent), var(--green));
+      border-radius: 10px;
+      transition: width 0.6s cubic-bezier(.4,0,.2,1);
+    }
+
+    /* === EMPTY STATE === */
+    .empty-state {
+      text-align: center;
+      padding: 3rem;
+      color: var(--text2);
+      font-size: 0.9rem;
+      display: none;
+    }
+    .empty-state.show { display: block; }
+
+    /* === SCROLL BAR === */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: var(--card2); border-radius: 10px; }
+
+    @media (max-width: 600px) {
+      .stats-bar { grid-template-columns: 1fr; }
+      .alumno-grid { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); }
+      .grado-tabs { flex-direction: column; }
+      header { padding: 0 1rem; }
+      .header-right { gap: 8px; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    Asistencia beta
+  </div>
+  <div class="header-right">
+    <div class="date-badge">📅 <span id="fechaHoy"></span></div>
+    <a href="asistencia.html" class="nav-link active">Asistencia</a>
+    <a href="reportes.html" class="nav-link">Reportes</a>
+  </div>
+</header>
+
+<main>
+  <div class="page-title">Toma de Asistencia</div>
+  <div class="page-sub" id="subTitle">Selecciona un grado para comenzar</div>
+
+  <div class="grado-tabs">
+    <div class="grado-tab" onclick="setGrado(1)" id="tab1">
+      <span><span class="num">1°</span>Primero</span>
+    </div>
+    <div class="grado-tab" onclick="setGrado(2)" id="tab2">
+      <span><span class="num">2°</span>Segundo</span>
+    </div>
+    <div class="grado-tab" onclick="setGrado(3)" id="tab3">
+      <span><span class="num">3°</span>Tercero</span>
+    </div>
+  </div>
+
+  <div class="progress-wrap" id="progressWrap" style="display:none">
+    <div class="progress-label">
+      <span>Progreso de captura</span>
+      <span id="progressTxt">0 / 0</span>
+    </div>
+    <div class="progress-track"><div class="progress-bar" id="progressBar" style="width:0%"></div></div>
+  </div>
+
+  <div class="stats-bar" id="statsBar" style="display:none">
+    <div class="stat-card">
+      <div class="stat-icon total">👥</div>
+      <div><div class="stat-label">Total alumnos</div><div class="stat-value blue" id="statTotal">0</div></div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon present">✅</div>
+      <div><div class="stat-label">Asistencias</div><div class="stat-value green" id="statPresent">0</div></div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon absent">❌</div>
+      <div><div class="stat-label">Faltas</div><div class="stat-value red" id="statAbsent">0</div></div>
+    </div>
+  </div>
+
+  <div class="alumno-grid" id="alumnoGrid"></div>
+  <div class="empty-state" id="emptyState">Selecciona un grado para ver la lista de alumnos</div>
+
+  <div class="actions" id="actionsBar" style="display:none">
+    <button class="btn btn-primary" onclick="guardarAsistencia()">💾 Guardar JSON</button>
+    <button class="btn btn-success" onclick="exportarPDF()">📄 Exportar PDF</button>
+    <button class="btn btn-secondary" onclick="marcarTodos(true)">✅ Todos presentes</button>
+    <button class="btn btn-secondary" onclick="marcarTodos(false)">❌ Todos ausentes</button>
+    <button class="btn btn-secondary" onclick="limpiarAsistencia()">🔄 Limpiar</button>
+  </div>
+</main>
+
+<div id="toast">
+  <span id="toastIcon"></span>
+  <span id="toastMsg"></span>
+</div>
+
+<script>
+/* ===== DATOS DE ALUMNOS ===== */
+const ALUMNOS = {
+  1: [
+    { id: 1, nombre: "Lopez Hernandez Hilary" },
+    { id: 2, nombre: "Martinez Lopez Emmanuel" },
+    { id: 3, nombre: "Ortiz Puebla Angel" },
+    { id: 4, nombre: "Tinoco Bravo Nohemi" },
+    { id: 5, nombre: "Villa Ricardo Karla Lizeth" },
+  ],
+  2: [
+    { id: 1, nombre: "Mendoza Jaimez Ian Kevin" },
+    { id: 2, nombre: "Mojica Ortiz Hernan" },
+    { id: 3, nombre: "Mora Duarte Jose Maximino" },
+    { id: 4, nombre: "Ortiz Hernandez Nora Itzel" },
+    { id: 5, nombre: "Ortiz Jaramillo Alan" },
+    { id: 6, nombre: "Palma Hernandez Yous y Violeth" },
+    { id: 7, nombre: "Sauce Duarte Leopoldo" },
+  ],
+  3: [
+    { id: 1, nombre: "Mora Duarte Francisca Marely" },
+    { id: 2, nombre: "Saucedo Duarte Maria de Jesus" },
+  ]
+};
+
+let gradoActual = null;
+let asistencia = {}; // { alumnoId: true/false/null }
+
+/* ===== FECHA ===== */
+function getFechaActual() {
+  const hoy = new Date();
+  const dias = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+  const meses = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+  return `${dias[hoy.getDay()]}, ${hoy.getDate()} de ${meses[hoy.getMonth()]} ${hoy.getFullYear()}`;
+}
+function getFechaISO() {
+  return new Date().toISOString().split('T')[0];
+}
+
+/* ===== INICIALIZAR ===== */
+document.getElementById('fechaHoy').textContent = getFechaActual();
+document.getElementById('emptyState').classList.add('show');
+
+/* ===== CAMBIAR GRADO ===== */
+function setGrado(g) {
+  gradoActual = g;
+  asistencia = {};
+  ALUMNOS[g].forEach(a => asistencia[a.id] = null);
+
+  document.querySelectorAll('.grado-tab').forEach((t,i) => {
+    t.classList.toggle('active', i+1 === g);
+  });
+
+  const nombres = { 1: 'Primero', 2: 'Segundo', 3: 'Tercero' };
+  document.getElementById('subTitle').textContent =
+    `${nombres[g]} — ${getFechaActual()}`;
+
+  document.getElementById('emptyState').classList.remove('show');
+  document.getElementById('progressWrap').style.display = '';
+  document.getElementById('statsBar').style.display = '';
+  document.getElementById('actionsBar').style.display = '';
+
+  renderAlumnos();
+  updateStats();
+}
+
+/* ===== RENDER ALUMNOS ===== */
+function getInitials(nombre) {
+  return nombre.split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase();
+}
+
+function renderAlumnos() {
+  const grid = document.getElementById('alumnoGrid');
+  grid.innerHTML = '';
+  const alumnos = ALUMNOS[gradoActual];
+  alumnos.forEach((a, idx) => {
+    const estado = asistencia[a.id];
+    const cls = estado === true ? 'present' : estado === false ? 'absent' : '';
+    const card = document.createElement('div');
+    card.className = `alumno-card ${cls}`;
+    card.id = `card-${a.id}`;
+    card.style.animationDelay = `${idx * 0.05}s`;
+    card.innerHTML = `
+      <div class="alumno-avatar">${getInitials(a.nombre)}</div>
+      <div class="alumno-name">${a.nombre}</div>
+      <div class="alumno-num">No. ${String(a.id).padStart(2,'0')}</div>
+      <div class="status-row">
+        <button class="status-btn btn-present" onclick="marcar(${a.id}, true)">
+          <span class="status-icon">✅</span> Presente
+        </button>
+        <button class="status-btn btn-absent" onclick="marcar(${a.id}, false)">
+          <span class="status-icon">❌</span> Falta
+        </button>
+      </div>
+    `;
+    grid.appendChild(card);
+  });
+}
+
+/* ===== MARCAR ASISTENCIA ===== */
+function marcar(id, presente) {
+  asistencia[id] = presente;
+  const card = document.getElementById(`card-${id}`);
+  card.className = `alumno-card ${presente ? 'present' : 'absent'}`;
+  // pulse animation
+  card.style.transform = 'scale(1.04)';
+  setTimeout(() => card.style.transform = '', 180);
+  updateStats();
+}
+
+function marcarTodos(presente) {
+  ALUMNOS[gradoActual].forEach(a => { asistencia[a.id] = presente; });
+  renderAlumnos();
+  updateStats();
+  showToast(presente ? '✅ Todos marcados como presentes' : '❌ Todos marcados como ausentes', presente ? 'success' : 'error');
+}
+
+function limpiarAsistencia() {
+  ALUMNOS[gradoActual].forEach(a => { asistencia[a.id] = null; });
+  renderAlumnos();
+  updateStats();
+  showToast('🔄 Asistencia reiniciada', '');
+}
+
+/* ===== UPDATE STATS ===== */
+function updateStats() {
+  const total = ALUMNOS[gradoActual].length;
+  const presentes = Object.values(asistencia).filter(v => v === true).length;
+  const ausentes = Object.values(asistencia).filter(v => v === false).length;
+  const capturados = presentes + ausentes;
+
+  document.getElementById('statTotal').textContent = total;
+  document.getElementById('statPresent').textContent = presentes;
+  document.getElementById('statAbsent').textContent = ausentes;
+
+  const pct = total ? Math.round((capturados / total) * 100) : 0;
+  document.getElementById('progressBar').style.width = pct + '%';
+  document.getElementById('progressTxt').textContent = `${capturados} / ${total} capturados (${pct}%)`;
+}
+
+/* ===== GUARDAR JSON ===== */
+function guardarAsistencia() {
+  if (!gradoActual) return showToast('❌ Selecciona un grado primero', 'error');
+  const total = ALUMNOS[gradoActual].length;
+  const capturados = Object.values(asistencia).filter(v => v !== null).length;
+  if (capturados < total) {
+    if (!confirm(`Aún hay ${total - capturados} alumnos sin registrar. ¿Guardar de todos modos?`)) return;
+  }
+
+  const nombres = { 1: 'Primero', 2: 'Segundo', 3: 'Tercero' };
+  const registro = {
+    grado: gradoActual,
+    gradoNombre: nombres[gradoActual],
+    fecha: getFechaISO(),
+    fechaLegible: getFechaActual(),
+    generado: new Date().toISOString(),
+    alumnos: ALUMNOS[gradoActual].map(a => ({
+      id: a.id,
+      nombre: a.nombre,
+      asistio: asistencia[a.id],
+    }))
+  };
+
+  const blob = new Blob([JSON.stringify(registro, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `asistencia_${gradoActual}grado_${getFechaISO()}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('💾 JSON guardado exitosamente', 'success');
+}
+
+/* ===== EXPORTAR PDF ===== */
+function exportarPDF() {
+  if (!gradoActual) return showToast('❌ Selecciona un grado primero', 'error');
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+  const nombres = { 1: 'Primero', 2: 'Segundo', 3: 'Tercero' };
+  const W = 210, M = 15;
+
+  // Background
+  doc.setFillColor(10, 12, 20);
+  doc.rect(0, 0, W, 297, 'F');
+
+  // Header bar
+  doc.setFillColor(28, 33, 53);
+  doc.roundedRect(M, 12, W - M*2, 28, 4, 4, 'F');
+
+  // Title
+  doc.setTextColor(79, 142, 247);
+  doc.setFontSize(16);
+  doc.setFont('helvetica', 'bold');
+  doc.text('CONTROL DE ASISTENCIA', M + 5, 24);
+
+  doc.setTextColor(139, 145, 176);
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'normal');
+  doc.text(`Grado: ${nombres[gradoActual]}  |  Fecha: ${getFechaActual()}`, M + 5, 32);
+
+  // Stats
+  const presentes = Object.values(asistencia).filter(v => v === true).length;
+  const ausentes = Object.values(asistencia).filter(v => v === false).length;
+  const total = ALUMNOS[gradoActual].length;
+  const pct = total ? Math.round(presentes / total * 100) : 0;
+
+  const stats = [
+    { label: 'Total', val: total, color: [79,142,247] },
+    { label: 'Asistencias', val: presentes, color: [34,209,122] },
+    { label: 'Faltas', val: ausentes, color: [255,77,109] },
+    { label: '% Asist.', val: pct+'%', color: [245,200,66] },
+  ];
+  stats.forEach((s, i) => {
+    const x = M + i * 45;
+    doc.setFillColor(24, 28, 46);
+    doc.roundedRect(x, 46, 42, 20, 3, 3, 'F');
+    doc.setTextColor(...s.color);
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.text(String(s.val), x + 21, 57, { align: 'center' });
+    doc.setTextColor(139, 145, 176);
+    doc.setFontSize(7);
+    doc.setFont('helvetica', 'normal');
+    doc.text(s.label, x + 21, 63, { align: 'center' });
+  });
+
+  // Table header
+  let y = 76;
+  doc.setFillColor(34, 40, 64);
+  doc.rect(M, y, W - M*2, 8, 'F');
+  doc.setTextColor(139, 145, 176);
+  doc.setFontSize(8);
+  doc.setFont('helvetica', 'bold');
+  doc.text('#', M + 4, y + 5.5);
+  doc.text('NOMBRE DEL ALUMNO', M + 12, y + 5.5);
+  doc.text('ESTADO', W - M - 20, y + 5.5, { align: 'center' });
+  y += 8;
+
+  ALUMNOS[gradoActual].forEach((a, idx) => {
+    if (y > 270) { doc.addPage(); doc.setFillColor(10,12,20); doc.rect(0,0,W,297,'F'); y = 20; }
+    const estado = asistencia[a.id];
+    const fill = idx % 2 === 0 ? [24,28,46] : [26,31,50];
+    doc.setFillColor(...fill);
+    doc.rect(M, y, W - M*2, 8, 'F');
+
+    doc.setTextColor(238, 240, 248);
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'normal');
+    doc.text(String(a.id).padStart(2,'0'), M + 4, y + 5.5);
+    doc.text(a.nombre, M + 12, y + 5.5);
+
+    if (estado === true) {
+      doc.setTextColor(34, 209, 122);
+      doc.text('✓ PRESENTE', W - M - 20, y + 5.5, { align: 'center' });
+    } else if (estado === false) {
+      doc.setTextColor(255, 77, 109);
+      doc.text('✗ FALTA', W - M - 20, y + 5.5, { align: 'center' });
+    } else {
+      doc.setTextColor(139, 145, 176);
+      doc.text('— S/R', W - M - 20, y + 5.5, { align: 'center' });
+    }
+    y += 8;
+  });
+
+  // Footer
+  doc.setTextColor(60, 65, 90);
+  doc.setFontSize(7);
+  doc.text(`Generado el ${new Date().toLocaleString('es-MX')} — AsistenciaApp`, W/2, 290, { align: 'center' });
+
+  doc.save(`asistencia_${gradoActual}grado_${getFechaISO()}.pdf`);
+  showToast('📄 PDF exportado exitosamente', 'success');
+}
+
+/* ===== TOAST ===== */
+function showToast(msg, type) {
+  const t = document.getElementById('toast');
+  document.getElementById('toastMsg').textContent = msg;
+  t.className = `show ${type}`;
+  clearTimeout(t._timeout);
+  t._timeout = setTimeout(() => t.className = '', 3000);
+}
+</script>
+</body>
+</html>

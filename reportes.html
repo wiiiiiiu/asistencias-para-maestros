@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Reportes — AsistenciaApp</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --bg: #0a0c14;
+      --bg2: #11141f;
+      --bg3: #181c2e;
+      --card: #1c2135;
+      --card2: #222840;
+      --accent: #4f8ef7;
+      --accent2: #7c5cfc;
+      --green: #22d17a;
+      --red: #ff4d6d;
+      --yellow: #f5c842;
+      --orange: #ff9533;
+      --text: #eef0f8;
+      --text2: #8b91b0;
+      --border: rgba(255,255,255,0.07);
+      --glow: 0 0 40px rgba(79,142,247,0.15);
+      --radius: 16px;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+    body::before {
+      content: '';
+      position: fixed; top: -200px; right: -200px;
+      width: 700px; height: 700px;
+      background: radial-gradient(circle, rgba(124,92,252,0.08) 0%, transparent 70%);
+      pointer-events: none; z-index: 0;
+      animation: floatBg 9s ease-in-out infinite alternate;
+    }
+    @keyframes floatBg { from { transform: translate(0,0); } to { transform: translate(-40px, 60px); } }
+
+    header {
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(10,12,20,0.85);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border);
+      padding: 0 2rem;
+      display: flex; align-items: center; justify-content: space-between;
+      height: 70px;
+      animation: slideDown 0.6s cubic-bezier(.4,0,.2,1);
+    }
+    @keyframes slideDown { from { transform: translateY(-100%); opacity: 0; } to { transform: none; opacity: 1; } }
+    .logo {
+      font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1.3rem;
+      letter-spacing: -0.03em;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      display: flex; align-items: center; gap: 10px;
+    }
+    .logo-icon { width: 32px; height: 32px; background: linear-gradient(135deg, var(--accent), var(--accent2)); border-radius: 8px; display: flex; align-items: center; justify-content: center; -webkit-text-fill-color: white; font-size: 1rem; }
+    .header-right { display: flex; align-items: center; gap: 12px; }
+    .nav-link { padding: 7px 18px; border-radius: 30px; font-size: 0.82rem; font-weight: 500; text-decoration: none; background: var(--card); border: 1px solid var(--border); color: var(--text2); transition: all 0.2s; }
+    .nav-link:hover { background: var(--card2); color: var(--text); border-color: var(--accent); }
+    .nav-link.active { background: linear-gradient(135deg, var(--accent), var(--accent2)); color: white; border-color: transparent; }
+
+    main { position: relative; z-index: 1; max-width: 1100px; margin: 0 auto; padding: 2.5rem 1.5rem; }
+
+    .page-title { font-family: 'Syne', sans-serif; font-size: 2rem; font-weight: 800; letter-spacing: -0.04em; margin-bottom: 0.3rem; animation: fadeUp 0.7s ease both; }
+    .page-sub { color: var(--text2); font-size: 0.9rem; margin-bottom: 2.5rem; animation: fadeUp 0.7s 0.1s ease both; }
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: none; } }
+
+    /* === UPLOAD ZONE === */
+    .upload-zone {
+      border: 2px dashed rgba(79,142,247,0.3);
+      border-radius: var(--radius);
+      background: var(--card);
+      padding: 2.5rem;
+      text-align: center;
+      margin-bottom: 2rem;
+      cursor: pointer;
+      transition: all 0.25s;
+      animation: fadeUp 0.7s 0.15s ease both;
+      position: relative;
+    }
+    .upload-zone:hover, .upload-zone.drag { border-color: var(--accent); background: rgba(79,142,247,0.05); }
+    .upload-zone input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+    .upload-icon { font-size: 2.5rem; margin-bottom: 12px; }
+    .upload-title { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 1rem; margin-bottom: 6px; }
+    .upload-hint { font-size: 0.8rem; color: var(--text2); }
+
+    /* === LOADED FILES === */
+    .files-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 2rem; animation: fadeUp 0.4s ease both; }
+    .file-chip {
+      display: flex; align-items: center; gap: 6px;
+      background: var(--card2); border: 1px solid var(--border);
+      border-radius: 30px; padding: 5px 12px 5px 8px;
+      font-size: 0.78rem; color: var(--text2);
+      animation: popIn 0.3s cubic-bezier(.4,0,.2,1) both;
+    }
+    @keyframes popIn { from { opacity: 0; transform: scale(0.8); } to { opacity: 1; transform: none; } }
+    .file-chip .dot { width: 8px; height: 8px; border-radius: 50%; }
+    .chip-g1 { background: var(--accent); }
+    .chip-g2 { background: var(--accent2); }
+    .chip-g3 { background: var(--green); }
+    .file-chip button { background: none; border: none; color: var(--text2); cursor: pointer; padding: 0; font-size: 0.9rem; line-height: 1; margin-left: 4px; }
+    .file-chip button:hover { color: var(--red); }
+
+    /* === SUMMARY CARDS === */
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 14px;
+      margin-bottom: 2rem;
+      animation: fadeUp 0.7s 0.2s ease both;
+    }
+    .summary-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .summary-card:hover { transform: translateY(-4px); box-shadow: var(--glow); }
+    .summary-label { font-size: 0.75rem; color: var(--text2); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.08em; }
+    .summary-val { font-family: 'Syne', sans-serif; font-size: 2rem; font-weight: 800; line-height: 1; margin-bottom: 6px; }
+    .summary-sub { font-size: 0.75rem; color: var(--text2); }
+    .bar-mini { height: 4px; background: var(--bg3); border-radius: 10px; margin-top: 10px; overflow: hidden; }
+    .bar-mini-fill { height: 100%; border-radius: 10px; transition: width 1s ease; }
+
+    /* === CHARTS === */
+    .charts-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 2rem;
+      animation: fadeUp 0.7s 0.25s ease both;
+    }
+    @media (max-width: 700px) { .charts-grid { grid-template-columns: 1fr; } }
+    .chart-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+    }
+    .chart-title { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 0.95rem; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+    .chart-title .badge { font-size: 0.7rem; padding: 2px 8px; border-radius: 30px; font-family: 'DM Sans', sans-serif; font-weight: 500; }
+    canvas { max-height: 220px; }
+
+    /* === TABLE === */
+    .table-section { animation: fadeUp 0.7s 0.3s ease both; }
+    .table-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 14px;
+    }
+    .table-title { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 1.05rem; }
+    .filter-tabs { display: flex; gap: 8px; }
+    .filter-tab {
+      padding: 5px 14px;
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      background: var(--card);
+      color: var(--text2);
+      font-size: 0.78rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .filter-tab.active { background: var(--card2); color: var(--text); border-color: var(--accent); }
+
+    .table-wrap {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      overflow-x: auto;
+    }
+    table { width: 100%; border-collapse: collapse; min-width: 520px; }
+    thead th {
+      background: var(--card2);
+      padding: 12px 16px;
+      text-align: left;
+      font-size: 0.75rem;
+      color: var(--text2);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      white-space: nowrap;
+    }
+    tbody tr { border-top: 1px solid var(--border); transition: background 0.15s; }
+    tbody tr:hover { background: rgba(255,255,255,0.02); }
+    tbody td { padding: 12px 16px; font-size: 0.85rem; }
+    .td-name { font-weight: 500; }
+    .td-grado .grado-badge {
+      display: inline-flex; align-items: center;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 0.72rem;
+      font-weight: 600;
+    }
+    .g1 { background: rgba(79,142,247,0.15); color: var(--accent); }
+    .g2 { background: rgba(124,92,252,0.15); color: var(--accent2); }
+    .g3 { background: rgba(34,209,122,0.15); color: var(--green); }
+    .pct-cell { display: flex; align-items: center; gap: 10px; }
+    .pct-bar { flex: 1; height: 5px; background: var(--bg3); border-radius: 10px; overflow: hidden; min-width: 60px; }
+    .pct-fill { height: 100%; border-radius: 10px; transition: width 0.8s ease; }
+    .pct-good { background: var(--green); }
+    .pct-warn { background: var(--yellow); }
+    .pct-bad { background: var(--red); }
+    .td-count .count-box {
+      display: inline-flex; align-items: center; gap: 4px;
+      font-size: 0.78rem; padding: 2px 8px;
+      border-radius: 8px;
+    }
+    .count-present { background: rgba(34,209,122,0.1); color: var(--green); }
+    .count-absent { background: rgba(255,77,109,0.1); color: var(--red); }
+
+    /* === EMPTY === */
+    .empty-report {
+      text-align: center;
+      padding: 4rem 2rem;
+      color: var(--text2);
+    }
+    .empty-report .empty-icon { font-size: 3rem; margin-bottom: 1rem; opacity: 0.5; }
+    .empty-report p { font-size: 0.9rem; }
+
+    /* === SECTION DIVIDER === */
+    .grado-divider {
+      font-family: 'Syne', sans-serif;
+      font-weight: 800;
+      font-size: 0.8rem;
+      color: var(--text2);
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      padding: 10px 16px 8px;
+      background: var(--bg3);
+      border-top: 1px solid var(--border);
+      display: flex; align-items: center; gap: 8px;
+    }
+    .grado-divider::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+    /* === SCROLLBAR === */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: var(--card2); border-radius: 10px; }
+
+    /* === ANIMATIONS === */
+    .animate-num {
+      display: inline-block;
+      transition: all 0.5s;
+    }
+    .btn {
+      padding: 10px 20px; border-radius: 30px; border: none;
+      font-family: 'DM Sans', sans-serif; font-size: 0.85rem; font-weight: 600;
+      cursor: pointer; transition: all 0.22s;
+      display: inline-flex; align-items: center; gap: 7px;
+    }
+    .btn-primary { background: linear-gradient(135deg, var(--accent), var(--accent2)); color: white; box-shadow: 0 4px 20px rgba(79,142,247,0.3); }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(79,142,247,0.45); }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    Asistencia beta
+  </div>
+  <div class="header-right">
+    <a href="asistencia.html" class="nav-link">Asistencia</a>
+    <a href="reportes.html" class="nav-link active">Reportes</a>
+  </div>
+</header>
+
+<main>
+  <div class="page-title">Reportes Globales</div>
+  <div class="page-sub">Carga uno o varios archivos JSON para visualizar las estadísticas acumuladas</div>
+
+  <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
+    <input type="file" id="fileInput" multiple accept=".json" onchange="handleFiles(this.files)">
+    <div class="upload-icon">📂</div>
+    <div class="upload-title">Arrastra tus archivos JSON aquí</div>
+    <div class="upload-hint">o haz clic para seleccionarlos — puedes cargar múltiples archivos</div>
+  </div>
+
+  <div id="chipsContainer" class="files-chips"></div>
+
+  <div id="reportContent" style="display:none">
+    <div class="summary-grid" id="summaryGrid"></div>
+    <div class="charts-grid">
+      <div class="chart-card">
+        <div class="chart-title">🍩 Asistencia Global <span class="badge g1">Todos los grados</span></div>
+        <canvas id="chartDonut"></canvas>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">📊 Por Grado <span class="badge g2">Comparativo</span></div>
+        <canvas id="chartBar"></canvas>
+      </div>
+    </div>
+
+    <div class="table-section">
+      <div class="table-header">
+        <div class="table-title">📋 Detalle por Alumno</div>
+        <div class="filter-tabs">
+          <div class="filter-tab active" onclick="filterTable('all', this)">Todos</div>
+          <div class="filter-tab" onclick="filterTable('1', this)">1°</div>
+          <div class="filter-tab" onclick="filterTable('2', this)">2°</div>
+          <div class="filter-tab" onclick="filterTable('3', this)">3°</div>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table id="mainTable">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Nombre del Alumno</th>
+              <th>Grado</th>
+              <th>Asistencias</th>
+              <th>Faltas</th>
+              <th>% Asistencia</th>
+            </tr>
+          </thead>
+          <tbody id="tableBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div id="emptyReport" class="empty-report">
+    <div class="empty-icon">📈</div>
+    <p>Carga archivos JSON de asistencia para ver los reportes</p>
+  </div>
+</main>
+
+<script>
+// ===== DATA STORE =====
+let loadedFiles = [];   // { name, data }
+let allData = {};       // { alumnoKey -> { nombre, grado, presentes, faltas, dias } }
+let chartDonut = null;
+let chartBar = null;
+
+// ===== DRAG & DROP =====
+const zone = document.getElementById('uploadZone');
+zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag'); });
+zone.addEventListener('dragleave', () => zone.classList.remove('drag'));
+zone.addEventListener('drop', e => {
+  e.preventDefault();
+  zone.classList.remove('drag');
+  handleFiles(e.dataTransfer.files);
+});
+
+// ===== HANDLE FILES =====
+function handleFiles(files) {
+  Array.from(files).forEach(file => {
+    if (!file.name.endsWith('.json')) return;
+    if (loadedFiles.find(f => f.name === file.name)) return;
+    const reader = new FileReader();
+    reader.onload = e => {
+      try {
+        const data = JSON.parse(e.target.result);
+        loadedFiles.push({ name: file.name, data });
+        addChip(file.name, data.grado);
+        mergeData(data);
+        renderReport();
+      } catch { alert('Error al leer el archivo: ' + file.name); }
+    };
+    reader.readAsText(file);
+  });
+}
+
+function removeFile(name) {
+  loadedFiles = loadedFiles.filter(f => f.name !== name);
+  rebuildData();
+  renderChip();
+  if (loadedFiles.length === 0) {
+    document.getElementById('reportContent').style.display = 'none';
+    document.getElementById('emptyReport').style.display = 'block';
+  } else {
+    renderReport();
+  }
+}
+
+function rebuildData() {
+  allData = {};
+  loadedFiles.forEach(f => mergeData(f.data));
+}
+
+function mergeData(json) {
+  const g = json.grado;
+  (json.alumnos || []).forEach(a => {
+    const key = `${g}_${a.id}`;
+    if (!allData[key]) {
+      allData[key] = { nombre: a.nombre, grado: g, presentes: 0, faltas: 0, sin_registro: 0, dias: 0 };
+    }
+    allData[key].dias++;
+    if (a.asistio === true) allData[key].presentes++;
+    else if (a.asistio === false) allData[key].faltas++;
+    else allData[key].sin_registro++;
+  });
+}
+
+// ===== CHIPS =====
+function addChip(name, grado) {
+  const chips = document.getElementById('chipsContainer');
+  const chip = document.createElement('div');
+  chip.className = 'file-chip';
+  chip.id = 'chip_' + name.replace(/\W/g,'_');
+  const dotClass = ['chip-g1','chip-g2','chip-g3'][grado-1] || 'chip-g1';
+  chip.innerHTML = `<div class="dot ${dotClass}"></div>${name}<button onclick="removeFile('${name}')">×</button>`;
+  chips.appendChild(chip);
+}
+function renderChip() {
+  document.getElementById('chipsContainer').innerHTML = '';
+  loadedFiles.forEach(f => addChip(f.name, f.data.grado));
+}
+
+// ===== RENDER REPORT =====
+function renderReport() {
+  document.getElementById('emptyReport').style.display = 'none';
+  document.getElementById('reportContent').style.display = '';
+  renderSummary();
+  renderCharts();
+  renderTable('all');
+}
+
+function renderSummary() {
+  const vals = Object.values(allData);
+  const totalAlumnos = vals.length;
+  const totalPresentes = vals.reduce((s,v) => s + v.presentes, 0);
+  const totalFaltas = vals.reduce((s,v) => s + v.faltas, 0);
+  const totalDias = vals.length ? Math.max(...vals.map(v=>v.dias)) : 0;
+  const pct = (totalPresentes + totalFaltas) ? Math.round(totalPresentes / (totalPresentes + totalFaltas) * 100) : 0;
+
+  const summaries = [
+    { label: 'Alumnos registrados', val: totalAlumnos, sub: 'en todos los grados', color: 'var(--accent)', pct: 100 },
+    { label: 'Asistencias totales', val: totalPresentes, sub: 'registros presentes', color: 'var(--green)', pct: pct },
+    { label: 'Faltas totales', val: totalFaltas, sub: 'registros de falta', color: 'var(--red)', pct: 100 - pct },
+    { label: '% Asistencia global', val: pct + '%', sub: 'promedio general', color: pct >= 80 ? 'var(--green)' : pct >= 60 ? 'var(--yellow)' : 'var(--red)', pct },
+  ];
+
+  const g = document.getElementById('summaryGrid');
+  g.innerHTML = summaries.map(s => `
+    <div class="summary-card">
+      <div class="summary-label">${s.label}</div>
+      <div class="summary-val" style="color:${s.color}">${s.val}</div>
+      <div class="summary-sub">${s.sub}</div>
+      <div class="bar-mini"><div class="bar-mini-fill" style="background:${s.color}; width:0%" data-pct="${s.pct}"></div></div>
+    </div>
+  `).join('');
+
+  // animate bars
+  setTimeout(() => {
+    document.querySelectorAll('.bar-mini-fill').forEach(el => {
+      el.style.width = el.dataset.pct + '%';
+    });
+  }, 100);
+}
+
+function renderCharts() {
+  const vals = Object.values(allData);
+  const presentes = vals.reduce((s,v) => s + v.presentes, 0);
+  const faltas = vals.reduce((s,v) => s + v.faltas, 0);
+  const sinReg = vals.reduce((s,v) => s + v.sin_registro, 0);
+
+  // DONUT
+  if (chartDonut) chartDonut.destroy();
+  const ctx1 = document.getElementById('chartDonut').getContext('2d');
+  chartDonut = new Chart(ctx1, {
+    type: 'doughnut',
+    data: {
+      labels: ['Asistencias', 'Faltas', 'Sin registro'],
+      datasets: [{
+        data: [presentes, faltas, sinReg],
+        backgroundColor: ['rgba(34,209,122,0.85)', 'rgba(255,77,109,0.85)', 'rgba(139,145,176,0.4)'],
+        borderColor: ['#22d17a', '#ff4d6d', '#8b91b0'],
+        borderWidth: 2,
+        hoverOffset: 8,
+      }]
+    },
+    options: {
+      cutout: '68%',
+      plugins: {
+        legend: { labels: { color: '#8b91b0', font: { family: 'DM Sans', size: 11 }, padding: 16 } },
+        tooltip: { callbacks: {
+          label: ctx => ` ${ctx.label}: ${ctx.parsed} (${Math.round(ctx.parsed/(presentes+faltas+sinReg||1)*100)}%)`
+        }}
+      },
+      animation: { animateScale: true, duration: 900 }
+    }
+  });
+
+  // BAR PER GRADO
+  const grados = [1, 2, 3];
+  const gradoNombres = ['1° Primero', '2° Segundo', '3° Tercero'];
+  const gradoPresentes = grados.map(g => vals.filter(v=>v.grado===g).reduce((s,v)=>s+v.presentes,0));
+  const gradoFaltas = grados.map(g => vals.filter(v=>v.grado===g).reduce((s,v)=>s+v.faltas,0));
+
+  if (chartBar) chartBar.destroy();
+  const ctx2 = document.getElementById('chartBar').getContext('2d');
+  chartBar = new Chart(ctx2, {
+    type: 'bar',
+    data: {
+      labels: gradoNombres,
+      datasets: [
+        {
+          label: 'Asistencias',
+          data: gradoPresentes,
+          backgroundColor: 'rgba(34,209,122,0.7)',
+          borderColor: '#22d17a',
+          borderWidth: 1,
+          borderRadius: 6,
+        },
+        {
+          label: 'Faltas',
+          data: gradoFaltas,
+          backgroundColor: 'rgba(255,77,109,0.7)',
+          borderColor: '#ff4d6d',
+          borderWidth: 1,
+          borderRadius: 6,
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { labels: { color: '#8b91b0', font: { family: 'DM Sans', size: 11 }, padding: 14 } },
+      },
+      scales: {
+        x: { ticks: { color: '#8b91b0', font: { family: 'DM Sans' } }, grid: { color: 'rgba(255,255,255,0.05)' } },
+        y: { ticks: { color: '#8b91b0', font: { family: 'DM Sans' }, stepSize: 1 }, grid: { color: 'rgba(255,255,255,0.05)' } }
+      },
+      animation: { duration: 900 }
+    }
+  });
+}
+
+// ===== TABLE =====
+let currentFilter = 'all';
+function filterTable(f, el) {
+  currentFilter = f;
+  document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  renderTable(f);
+}
+
+function renderTable(filter) {
+  const tbody = document.getElementById('tableBody');
+  const gradoNames = { 1: '1° Primero', 2: '2° Segundo', 3: '3° Tercero' };
+  const gradoClass = { 1: 'g1', 2: 'g2', 3: 'g3' };
+
+  let entries = Object.entries(allData);
+  if (filter !== 'all') entries = entries.filter(([,v]) => String(v.grado) === filter);
+
+  // Sort by grado then name
+  entries.sort((a,b) => {
+    if (a[1].grado !== b[1].grado) return a[1].grado - b[1].grado;
+    return a[1].nombre.localeCompare(b[1].nombre);
+  });
+
+  if (!entries.length) {
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:2rem;color:var(--text2)">No hay datos para mostrar</td></tr>`;
+    return;
+  }
+
+  let html = '';
+  let lastGrado = null;
+  entries.forEach(([, v], i) => {
+    if (filter === 'all' && v.grado !== lastGrado) {
+      lastGrado = v.grado;
+      html += `<tr><td colspan="6" style="padding:0">
+        <div class="grado-divider"><span class="${gradoClass[v.grado]}">${gradoNames[v.grado]}</span></div>
+      </td></tr>`;
+    }
+    const total = v.presentes + v.faltas;
+    const pct = total ? Math.round(v.presentes / total * 100) : 0;
+    const pctClass = pct >= 80 ? 'pct-good' : pct >= 60 ? 'pct-warn' : 'pct-bad';
+    html += `
+      <tr style="animation: fadeUp 0.4s ${i*0.03}s ease both">
+        <td style="color:var(--text2); font-size:0.78rem">${String(i+1).padStart(2,'0')}</td>
+        <td class="td-name">${v.nombre}</td>
+        <td class="td-grado"><span class="grado-badge ${gradoClass[v.grado]}">${gradoNames[v.grado]}</span></td>
+        <td class="td-count"><span class="count-box count-present">✓ ${v.presentes}</span></td>
+        <td class="td-count"><span class="count-box count-absent">✗ ${v.faltas}</span></td>
+        <td>
+          <div class="pct-cell">
+            <div class="pct-bar"><div class="pct-fill ${pctClass}" style="width:${pct}%"></div></div>
+            <span style="font-size:0.82rem; font-weight:600; color:${pct>=80?'var(--green)':pct>=60?'var(--yellow)':'var(--red)'}">${pct}%</span>
+          </div>
+        </td>
+      </tr>
+    `;
+  });
+  tbody.innerHTML = html;
+}
+</script>
+</body>
+</html>
